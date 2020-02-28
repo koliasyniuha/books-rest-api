@@ -1,0 +1,51 @@
+service: books-rest-api
+custom:
+  tableName: 'books'
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-2
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["BooksDynamoDBTable", "Arn" ] }
+  environment:
+    BOOKS_TABLE: ${self:custom.tableName}
+functions:
+  app:
+    handler: app/index.server
+    events:
+      - http:
+          path: book
+          method: post
+          cors: true
+      - http:
+          path: /books
+          method: get
+          cors: true
+      - http:
+          path: /book/{bookUuid}
+          method: ANY
+          cors: true
+resources:
+  Resources:
+    BooksDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: uuid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: uuid
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
